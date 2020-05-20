@@ -1,6 +1,9 @@
 const express = require('express')
+const { v4: uuidv4 } = require('uuid')
+
 
 const app = express()
+
 
 app.use(express.json())
 
@@ -8,18 +11,24 @@ app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
-app.get('/pins', (response, request) => {
+let pins = []
+
+app.get('/pins', (request, response) => {
+    response.send(pins)
+})
+
+app.post('/pins', (request, response) => {
+
+    request.body.id = uuidv4()
+    pins.push(request.body)
+    response.send('object created')
+})
+
+app.patch('/pins/:pin', (request, response) => {
 
 })
 
-app.post('/pins', (response, request) => {
-
-})
-
-app.patch('/pins/:pin', (response, request) => {
-
-})
-
-app.delete('/pins/:pin', (response, request) => {
-    
+app.delete('/pins/:pin', (request, response) => {
+    console.log(request.params.pin)
+    response.send('Pin deleted')
 })
