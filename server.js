@@ -29,6 +29,10 @@ app.patch('/pins/:pin', (request, response) => {
 })
 
 app.delete('/pins/:pin', (request, response) => {
-    console.log(request.params.pin)
+    for (let i = 0; i < pins.length; i++) {
+        if (request.params.pin === pins[i].id) {
+            pins.splice(i, 1)
+        }
+    }
     response.send('Pin deleted')
 })
