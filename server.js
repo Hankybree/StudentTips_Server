@@ -17,17 +17,20 @@ let pins = []
 let database
 
 sqlite
-    .open({ driver: sqlite3.Database, filename: 'database.sqlite'})
-    .then((database_) =>{
+    .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
+    .then((database_) => {
         database = database_
     })
+
+
+
 
 app.get('/pins', (request, response) => {
     response.send(pins)
 })
 
-app.post('/pins', (request, response) => {
 
+app.post('/pins', (request, response) => {
     request.body.pinId = uuidv4()
     pins.push(request.body)
     response.send('object created')
@@ -60,10 +63,8 @@ app.patch('/pins/:pin', (request, response) => {
 })
 
 app.delete('/pins/:pin', (request, response) => {
-    for (let i = 0; i < pins.length; i++) {
-        if (request.params.pin === pins[i].pinId) {
-            pins.splice(i, 1)
-        }
-    }
-    response.send('Pin deleted')
+    database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
+        .then(() => {
+            response.send('Delete request executed')
+        })
 })
