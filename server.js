@@ -21,15 +21,29 @@ sqlite
         database = database_
     })
 
-
-
-
 app.get('/pins', (request, response) => {
     database.all('SELECT * FROM pins;').then(pins => {
-        response.send(pins)
+
+        let pinArray = []
+
+        for(let i = 0; i < pins.length; i++) {
+            
+            let pinObject = {
+                pinId: pins[i].pinId,
+                pinTitle: pins[i].pinTitle,
+                pinDescription: pins[i].pinDescription,
+                pinImage: pins[i].pinImage,
+                pinTags: JSON.parse(pins[i].pinTags),
+                pinCoordinates: JSON.parse(pins[i].pinCoordinates),
+                pinUser: pins[i].pinUser
+            }
+
+            pinArray.push(pinObject)
+        }
+        
+        response.send(pinArray)
     })
 })
-
 
 app.post('/pins', (request, response) => {
     database
