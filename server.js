@@ -13,7 +13,6 @@ app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
-let pins = []
 let database
 
 sqlite
@@ -26,7 +25,9 @@ sqlite
 
 
 app.get('/pins', (request, response) => {
-    response.send(pins)
+    database.all('SELECT * FROM pins;').then(pins => {
+        response.send(pins)
+    })
 })
 
 
