@@ -21,17 +21,32 @@ sqlite
         database = database_
     })
 
+
+
+
 app.get('/pins', (request, response) => {
     database.all('SELECT * FROM pins;').then(pins => {
         response.send(pins)
     })
 })
 
-app.post('/pins', (request, response) => {
 
-    request.body.pinId = uuidv4()
-    pins.push(request.body)
-    response.send('object created')
+app.post('/pins', (request, response) => {
+    database
+        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)', [
+            request.body.pinTitle,
+            request.body.pinDescription,
+            request.body.pinImage,
+            JSON.stringify(request.body.pinTags),
+            JSON.stringify(request.body.pinCoordinates),
+            request.body.pinUser
+        ])
+        .then(() => {
+            response.status(201).send(request.body)
+        })
+        .catch(error => {
+            response.send(error)
+        })
 })
 
 app.patch('/pins/:pin', (request, response) => {
@@ -61,10 +76,8 @@ app.patch('/pins/:pin', (request, response) => {
 })
 
 app.delete('/pins/:pin', (request, response) => {
-    for (let i = 0; i < pins.length; i++) {
-        if (request.params.pin === pins[i].pinId) {
-            pins.splice(i, 1)
-        }
-    }
-    response.send('Pin deleted')
+    database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
+        .then(() => {
+            response.send('Delete request executed')
+        })
 })
