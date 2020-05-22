@@ -1,17 +1,26 @@
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
-
+const cors = require('cors')
+const sqlite = require('sqlite')
+const sqlite3 = require('sqlite3')
 
 const app = express()
 
-
 app.use(express.json())
+app.use(cors())
 
 app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
 let pins = []
+let database
+
+sqlite
+    .open({ driver: sqlite3.Database, filename: 'database.sqlite'})
+    .then((database_) =>{
+        database = database_
+    })
 
 app.get('/pins', (request, response) => {
     response.send(pins)
