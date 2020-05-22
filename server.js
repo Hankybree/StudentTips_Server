@@ -31,9 +31,21 @@ app.get('/pins', (request, response) => {
 
 
 app.post('/pins', (request, response) => {
-    request.body.pinId = uuidv4()
-    pins.push(request.body)
-    response.send('object created')
+    database
+        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)', [
+            request.body.pinTitle,
+            request.body.pinDescription,
+            request.body.pinImage,
+            JSON.stringify(request.body.pinTags),
+            JSON.stringify(request.body.pinCoordinates),
+            request.body.pinUser
+        ])
+        .then(() => {
+            response.status(201).send(request.body)
+        })
+        .catch(error => {
+            response.send(error)
+        })
 })
 
 app.patch('/pins/:pin', (request, response) => {
