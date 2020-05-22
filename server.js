@@ -13,17 +13,18 @@ app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
-let pins = []
 let database
 
 sqlite
-    .open({ driver: sqlite3.Database, filename: 'database.sqlite'})
-    .then((database_) =>{
+    .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
+    .then((database_) => {
         database = database_
     })
 
 app.get('/pins', (request, response) => {
-    response.send(pins)
+    database.all('SELECT * FROM pins;').then(pins => {
+        response.send(pins)
+    })
 })
 
 app.post('/pins', (request, response) => {
