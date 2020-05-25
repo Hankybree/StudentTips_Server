@@ -46,6 +46,18 @@ app.get('/pins', (request, response) => {
     })
 })
 
+app.get('/pins/:pin', (request, response) => {
+
+    database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
+        .then((pins) => {
+            
+            pins[0].pinTags = JSON.parse(pins[0].pinTags)
+            pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
+
+            response.send(pins[0])
+        })
+})
+
 app.post('/pins', (request, response) => {
 
     database
@@ -60,7 +72,7 @@ app.post('/pins', (request, response) => {
         ])
         .then(() => {
 
-            response.status(201).send(request.body)
+            response.status(201).send('Pin created')
         })
         .catch(error => {
 
@@ -83,7 +95,8 @@ app.patch('/pins/:pin', (request, response) => {
                         JSON.stringify(updatedPin.pinTags),
                         JSON.stringify(updatedPin.pinCoordinates),
                         updatedPin.pinId
-                    ]).then(() => {
+                    ])
+                    .then(() => {
                         
                         response.send('Pin updated')
                     })
