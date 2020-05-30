@@ -85,6 +85,9 @@ app.patch('/pins/:pin', (request, response) => {
     database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
             .then((pins) => {
 
+                pins[0].pinTags = JSON.parse(pins[0].pinTags)
+                pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
+
                 let updatedPin = Object.assign(pins[0], request.body)
 
                 database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
