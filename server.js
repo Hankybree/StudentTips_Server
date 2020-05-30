@@ -4,10 +4,15 @@ const cors = require('cors')
 const sqlite = require('sqlite')
 const sqlite3 = require('sqlite3')
 
+var multer = require('multer')
+var upload = multer({ dest: 'uploads/' })
+var fs = require('fs')
+
 const app = express()
 
 app.use(express.json())
 app.use(cors())
+app.use('/uploads', express.static('uploads'))
 
 app.listen(12001, () => {
     console.log('Server running on port 12001')
@@ -27,8 +32,8 @@ app.get('/pins', (request, response) => {
 
         let pinArray = []
 
-        for(let i = 0; i < pins.length; i++) {
-            
+        for (let i = 0; i < pins.length; i++) {
+
             let pinObject = {
                 pinId: pins[i].pinId,
                 pinTitle: pins[i].pinTitle,
@@ -41,7 +46,7 @@ app.get('/pins', (request, response) => {
 
             pinArray.push(pinObject)
         }
-        
+
         response.send(pinArray)
     })
 })
@@ -50,7 +55,7 @@ app.get('/pins/:pin', (request, response) => {
 
     database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
         .then((pins) => {
-            
+
             pins[0].pinTags = JSON.parse(pins[0].pinTags)
             pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
 
@@ -58,18 +63,24 @@ app.get('/pins/:pin', (request, response) => {
         })
 })
 
-app.post('/pins', (request, response) => {
+app.post('/pins', upload.single('avatar'), (request, response) => {
+
+    let pinImagePath
+
+    if (request.file !== undefined) {
+        pinImagePath = 'http://localhost:12001/' + request.file.path
+    }
 
     database
-        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)', 
-        [
-            request.body.pinTitle,
-            request.body.pinDescription,
-            request.body.pinImage,
-            JSON.stringify(request.body.pinTags),
-            JSON.stringify(request.body.pinCoordinates),
-            request.body.pinUser
-        ])
+        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                request.body.pinTitle,
+                request.body.pinDescription,
+                pinImagePath,
+                JSON.stringify(request.body.pinTags),
+                JSON.stringify(request.body.pinCoordinates),
+                request.body.pinUser
+            ])
         .then(() => {
 
             response.status(201).send('Pin created')
@@ -83,31 +94,44 @@ app.post('/pins', (request, response) => {
 app.patch('/pins/:pin', (request, response) => {
 
     database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
-            .then((pins) => {
+        .then((pins) => {
 
-                let updatedPin = Object.assign(pins[0], request.body)
+            pins[0].pinTags = JSON.parse(pins[0].pinTags)
+            pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
 
-                database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
-                    [
-                        updatedPin.pinTitle, 
-                        updatedPin.pinDescription,
-                        updatedPin.pinImage,
-                        JSON.stringify(updatedPin.pinTags),
-                        JSON.stringify(updatedPin.pinCoordinates),
-                        updatedPin.pinId
-                    ])
-                    .then(() => {
-                        
-                        response.send('Pin updated')
-                    })
-            })
+            let updatedPin = Object.assign(pins[0], request.body)
+
+            database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
+                [
+                    updatedPin.pinTitle,
+                    updatedPin.pinDescription,
+                    updatedPin.pinImage,
+                    JSON.stringify(updatedPin.pinTags),
+                    JSON.stringify(updatedPin.pinCoordinates),
+                    updatedPin.pinId
+                ])
+                .then(() => {
+
+                    response.send('Pin updated')
+                })
+        })
 })
 
 app.delete('/pins/:pin', (request, response) => {
 
-    database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
-        .then(() => {
+    database.all('SELECT * FROM pins WHERE pinId=?', [request.params.pin])
+        .then((pins) => {
 
-            response.send('Pin deleted')
+            database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
+                .then(() => {
+
+                    let imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+
+                    fs.unlink(imgUrl, () => {
+                        console.log('file deleted')
+                    })
+
+                    response.send('Pin deleted')
+                })
         })
 })
