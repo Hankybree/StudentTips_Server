@@ -3,11 +3,17 @@ const { v4: uuidv4 } = require('uuid')
 const cors = require('cors')
 const sqlite = require('sqlite')
 const sqlite3 = require('sqlite3')
-
+//const bodyParser = require('body-parser');
+const nodemailer = require('nodemailer');
+require('dotenv').config()
+const mail = process.env['MAIL_USER'];
+const pass = process.env['MAIL_PASS']
 const app = express()
 
 app.use(express.json())
 app.use(cors())
+
+
 
 app.listen(12001, () => {
     console.log('Server running on port 12001')
@@ -113,4 +119,30 @@ app.delete('/pins/:pin', (request, response) => {
 
             response.send('Pin deleted')
         })
+})
+
+app.post('/send-mail/:mailto', (request, response) => {
+    
+    var transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: mail,
+            pass: pass
+        }
+    });
+    var mailOptions = {
+        from: mail,
+        to: [request.params.mailto],
+        subject: 'Sending Email using Node.js',
+        text: 'Wellcom to Tiptop!'
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            response.send(error);
+        } else {
+            response.send('Email sent: ' + info.response);
+        }
+    });
+
 })
