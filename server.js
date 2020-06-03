@@ -63,7 +63,7 @@ app.get('/pins/:pin', (request, response) => {
         })
 })
 
-app.post('/pins', upload.single('avatar'), (request, response) => {
+app.post('/pins', upload.single('pinImage'), (request, response) => {
 
     let pinImagePath
 
@@ -91,11 +91,24 @@ app.post('/pins', upload.single('avatar'), (request, response) => {
         })
 })
 
-app.patch('/pins/:pin', (request, response) => {
+app.patch('/pins/:pin', upload.single('pinImage'), (request, response) => {
 
     database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
         .then((pins) => {
 
+            if (request.file !== undefined) {
+
+                if (pins[0].pinImage !== null) {
+                    const imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+
+                        fs.unlink(imgUrl, () => {
+                            console.log('file deleted')
+                        })
+                }
+                const pinImagePath = 'http://localhost:12001/' + request.file.path
+                pins[0].pinImage = pinImagePath
+            }
+            
             pins[0].pinTags = JSON.parse(pins[0].pinTags)
             pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
 
@@ -125,11 +138,14 @@ app.delete('/pins/:pin', (request, response) => {
             database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
                 .then(() => {
 
-                    let imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+                    if (pins[0].pinImage !== undefined && pins[0].pinImage !== null) {
+                        
+                        const imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
 
-                    fs.unlink(imgUrl, () => {
-                        console.log('file deleted')
-                    })
+                        fs.unlink(imgUrl, () => {
+                            console.log('file deleted')
+                        })
+                    }
 
                     response.send('Pin deleted')
                 })
