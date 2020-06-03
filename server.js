@@ -25,6 +25,8 @@ var database
 sqlite
     .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
     .then((database_) => {
+
         database = database_
+        
         pins(app, database, upload,fs)
     })
