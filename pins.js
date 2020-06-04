@@ -50,8 +50,8 @@ module.exports = function (app, database, upload, fs) {
                     request.body.pinTitle,
                     request.body.pinDescription,
                     pinImagePath,
-                    JSON.stringify(request.body.pinTags),
-                    JSON.stringify(request.body.pinCoordinates),
+                    request.body.pinTags,
+                    request.body.pinCoordinates,
                     request.body.pinUser
                 ])
             .then(() => {
@@ -72,13 +72,13 @@ module.exports = function (app, database, upload, fs) {
                 if (request.file !== undefined) {
 
                     if (pins[0].pinImage !== null) {
-                        const imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+                        const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
 
                         fs.unlink(imgUrl, () => {
                             console.log('file deleted')
                         })
                     }
-                    const pinImagePath = 'http://localhost:12001/' + request.file.path
+                    const pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
                     pins[0].pinImage = pinImagePath
                     
                 } else {
@@ -86,7 +86,7 @@ module.exports = function (app, database, upload, fs) {
                     // request.body.pinImage === 'null' is a string because client can't send null as a value
                     if (request.body.pinImage === 'null' && pins[0].pinImage !== null) {
     
-                        const imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+                        const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
     
                         fs.unlink(imgUrl, () => {
                             console.log('file deleted')
@@ -106,8 +106,8 @@ module.exports = function (app, database, upload, fs) {
                         updatedPin.pinTitle,
                         updatedPin.pinDescription,
                         updatedPin.pinImage,
-                        JSON.stringify(updatedPin.pinTags),
-                        JSON.stringify(updatedPin.pinCoordinates),
+                        updatedPin.pinTags,
+                        updatedPin.pinCoordinates,
                         updatedPin.pinId
                     ])
                     .then(() => {
@@ -127,7 +127,7 @@ module.exports = function (app, database, upload, fs) {
 
                         if (pins[0].pinImage !== undefined && pins[0].pinImage !== null) {
 
-                            const imgUrl = pins[0].pinImage.replace('http://localhost:12001/', '')
+                            const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
 
                             fs.unlink(imgUrl, () => {
                                 console.log('file deleted')
