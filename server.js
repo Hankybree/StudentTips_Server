@@ -16,6 +16,8 @@ var upload = multer({
 })
 var fs = require('fs')
 
+var uniqeId = uuidv4()
+
 const app = express()
 
 const pins = require('./pins.js')
