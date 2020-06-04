@@ -41,7 +41,7 @@ module.exports = function (app, database, upload, fs) {
         let pinImagePath
 
         if (request.file !== undefined) {
-            pinImagePath = 'http://localhost:12001/' + request.file.path
+            pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
         }
 
         database
