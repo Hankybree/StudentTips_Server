@@ -5,7 +5,15 @@ const sqlite = require('sqlite')
 const sqlite3 = require('sqlite3')
 
 var multer = require('multer')
-var upload = multer({ dest: 'uploads/' })
+var upload = multer({
+    dest: 'uploads/',
+    fileFilter: function (req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+            return cb(new Error('Only image files are allowed!'));
+        }
+        cb(null, true);
+    }
+})
 var fs = require('fs')
 
 const app = express()
@@ -27,6 +35,6 @@ sqlite
     .then((database_) => {
 
         database = database_
-        
-        pins(app, database, upload,fs)
+
+        pins(app, database, upload, fs)
     })
