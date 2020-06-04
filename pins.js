@@ -96,9 +96,6 @@ module.exports = function (app, database, upload, fs) {
                     }
                 }
 
-                pins[0].pinTags = JSON.parse(pins[0].pinTags)
-                pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
-
                 let updatedPin = Object.assign(pins[0], request.body)
 
                 database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
