@@ -15,12 +15,10 @@ var upload = multer({
     }
 })
 var fs = require('fs')
-
-var uniqeId = uuidv4()
-
 const app = express()
 
 const pins = require('./pins.js')
+const users = require('./users.js')
 
 app.use(express.json())
 app.use(cors())
@@ -39,4 +37,5 @@ sqlite
         database = database_
 
         pins(app, database, upload, fs)
+        users(app, database, { v4: uuidv4 })
     })

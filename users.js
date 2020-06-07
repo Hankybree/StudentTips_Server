@@ -1,30 +1,37 @@
-module.exports = function (app, database, upload, fs, uniqeId) {
-    app.get('/users', (request, respose) => {
+module.exports = function (app, database, uniqeId) {
+    let usersArr = []
+    app.get('/users', (request, response) => {
         database.all('SELECT * FROM users')
-            .then(users => {
-                let usersArr = []
-                respose.send(usersArr)
+            .then(response.send(usersArr))
+            .catch(error => {
+
+                response.send(error)
             })
     })
 
-    app.post('/users', (request, respose) => {
-        console.log('hejhej')
-        database.run('INSERT INTO users (userId, userName, userPassword, userAdmin, userImage, userDescription, userTags, userPins) VALUES (?,?,?,?,?,?,?,?)'
-        [
-            JSON.stringify(uniqeId),
-            request.body.userName,
-            request.body.passWord,
-            request.body.Email,
-            "No",
-            "https://news.google.se/nwshp?hl=sv&tab=in",
-            "No description",
-            "[]",
-            "[]"
+    app.post('/users', (request, response) => {
 
+        database.run('INSERT INTO users (userId,userName, userPassword, userEmail, userAdmin, userImage, userDescription, userTags, userPins) VALUES (?,?,?,?,?,?,?,?,?)',
+            [
 
-        ])
+                request.body.userId = uniqeId.v4(),
+                request.body.userName,
+                request.body.userPassword,
+                request.body.userEmail,
+                request.body.userAdmin,
+                request.body.userImage,
+                request.body.userDescription,
+                request.body.userTags,
+                request.body.userPins
+
+            ])
             .then(() => {
-                respose.send('user created')
+                response.status(201).send('User created')
+                usersArr.push(request.body)
+            })
+            .catch(error => {
+
+                response.send({ stat: error, message: error.message })
             })
     })
 }
