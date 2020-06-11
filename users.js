@@ -1,48 +1,108 @@
-module.exports = function (app, database, uniqeId) {
-    let usersArr = []
-    app.get('/users', (request, response) => {
-        if (request.query.userUuid) {
-            database.all('SELECT * FROM users WHERE userUuid = ?', request.query.userUuid)
-                .then(() => {
-                    for (let i = 0; i < usersArr.length; i++) {
-                        if (usersArr[i].userUuid === request.query.userUuid) {
-                            response.send('Hello ' + usersArr[i].userName)
-                            //Signd in
-                        }
-                    }
+module.exports = function (app, database, accessToken, upload, fs) {
 
-                })
-        }
-        else {
-            database.all('SELECT * FROM users')
-                .then(response.send(usersArr))
-                .catch(error => {
+    app.post('/signup', upload.single('userImage'), (request, response) => {
 
-                    response.send(error)
-                })
+        let userImagePath
+
+        if (request.file !== undefined) {
+            userImagePath = 'http://116.203.125.0:12001/' + request.file.path
         }
 
+        database.all('SELECT * FROM users WHERE userName=?', [request.body.userName])
+            .then((users) => {
+
+                if (users[0] === undefined) {
+
+                    database.run('INSERT INTO users (userName, userPassword, userAdmin, userImage, userDescription, userTags, userPins, userEmail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                        [
+                            request.body.userName,
+                            request.body.userPassword,
+                            'false',
+                            userImagePath,
+                            '',
+                            '[]',
+                            '[]',
+                            request.body.userEmail
+                        ]).then(() => {
+
+                            response.status(201).send('Created')
+                        })
+                } else {
+                    response.send('Username is already in use')
+                }
+            })
     })
 
-    app.post('/users', (request, response) => {
-        database.run('INSERT INTO users (userUuid,userName, userPassword, userEmail, userAdmin, userImage, userDescription, userTags, userPins) VALUES (?,?,?,?,?,?,?,?,?)',
-            [
-                request.body.userUuid = uniqeId.v4(),
-                request.body.userName,
-                request.body.userPassword,
-                request.body.userEmail,
-                request.body.userAdmin,
-                request.body.userImage,
-                request.body.userDescription,
-                request.body.userTags,
-                request.body.userPins
-            ])
-            .then(() => {
-                response.status(201).send('User created')
-                usersArr.push(request.body)
+    app.post('/login', (request, response) => {
+
+        database.all('SELECT * FROM users WHERE userName=?', [request.body.userName])
+            .then((users) => {
+
+                if (users[0] === undefined) {
+                    response.send('Incorrect username or password')
+                    return
+                }
+
+                if (users[0].userPassword === request.body.userPassword) {
+                    
+                    database.all('SELECT * FROM sessions WHERE sessionUserId=?', [users[0].userId])
+                        .then((sessions) => {
+                            if (sessions[0] === undefined) {
+
+                                const token = accessToken.v4()
+
+                                database.run('INSERT INTO sessions (sessionUserId, sessionToken) VALUES (?, ?)',
+                                    [
+                                        users[0].userId,
+                                        token
+                                    ]).then(() => {
+                                        response.send(token)
+                                    })
+                            } else {
+                                response.send('Already logged in')
+                            }
+                        })
+                } else {
+                    response.send('Incorrect username or password')
+                }
             })
-            .catch(error => {
-                response.send({ stat: error, message: error.message })
+    })
+
+    app.delete('/logout', (request, response) => {
+
+        if (request.get('Token')) {
+
+            database.run('DELETE FROM sessions WHERE sessionToken=?', [request.get('Token')])
+            .then(() => {
+                response.send('Logged out')
+            })
+            
+        } else {
+            response.send('You are not logged in')
+        }
+    })
+
+    // Only for testing
+
+    app.get('/users', (request, response) => {
+
+        database.all('SELECT * FROM users')
+            .then((users) => {
+
+                for (let i = 0; i < users.length; i++) {
+                    users[i].userAdmin = JSON.parse(users[i].userAdmin)
+                    users[i].userTags = JSON.parse(users[i].userTags)
+                    users[i].userPins = JSON.parse(users[i].userPins)
+                }
+
+                response.send(users)
+            })
+    })
+
+    app.get('/sessions', (request, response) => {
+        database.all('SELECT * FROM sessions')
+            .then((sessions) => {
+                response.send(sessions)
             })
     })
 }

@@ -38,29 +38,36 @@ module.exports = function (app, database, upload, fs) {
 
     app.post('/pins', upload.single('pinImage'), (request, response) => {
 
-        let pinImagePath
+        authenticate(request.get('Token'))
+            .then((user) => {
+                if (user !== -1) {
+                    let pinImagePath
 
-        if (request.file !== undefined) {
-            pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
-        }
+                    if (request.file !== undefined) {
+                        pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
+                    }
 
-        database
-            .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)',
-                [
-                    request.body.pinTitle,
-                    request.body.pinDescription,
-                    pinImagePath,
-                    request.body.pinTags,
-                    request.body.pinCoordinates,
-                    request.body.pinUser
-                ])
-            .then(() => {
+                    database
+                        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)',
+                            [
+                                request.body.pinTitle,
+                                request.body.pinDescription,
+                                pinImagePath,
+                                request.body.pinTags,
+                                request.body.pinCoordinates,
+                                request.body.pinUser
+                            ])
+                        .then(() => {
 
-                response.status(201).send('Pin created')
-            })
-            .catch(error => {
+                            response.status(201).send('Pin created')
+                        })
+                        .catch(error => {
 
-                response.send(error)
+                            response.send(error)
+                        })
+                } else {
+                    response.send('Unauthorized')
+                }
             })
     })
 
@@ -80,14 +87,14 @@ module.exports = function (app, database, upload, fs) {
                     }
                     const pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
                     pins[0].pinImage = pinImagePath
-                    
+
                 } else {
-                    
+
                     // request.body.pinImage === 'null' is a string because client can't send null as a value
                     if (request.body.pinImage === 'null' && pins[0].pinImage !== null) {
-    
+
                         const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
-    
+
                         fs.unlink(imgUrl, () => {
                             console.log('file deleted')
                         })
@@ -138,4 +145,25 @@ module.exports = function (app, database, upload, fs) {
                     })
             })
     })
+
+    function authenticate(token) {
+
+        return new Promise((resolve, reject) => {
+            if (token) {
+
+                database.all('SELECT * FROM sessions WHERE sessionToken=?', [token])
+                    .then((sessions) => {
+                        if (!sessions[0]) {
+                            resolve(-1)
+                        } else {
+                            resolve(sessions[0].sessionUserId)
+                        }
+                    })
+
+            } else {
+
+                resolve(-1)
+            }
+        })
+    }
 }  

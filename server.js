@@ -37,5 +37,5 @@ sqlite
         database = database_
 
         pins(app, database, upload, fs)
-        users(app, database, { v4: uuidv4 })
+        users(app, database, { v4: uuidv4 }, upload, fs)
     })
