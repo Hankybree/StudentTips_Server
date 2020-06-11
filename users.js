@@ -1,4 +1,4 @@
-module.exports = function (app, database, accessToken, upload, fs) {
+module.exports = function (app, database, accessToken, upload, fs, authenticate) {
 
     app.post('/signup', upload.single('userImage'), (request, response) => {
 
@@ -44,7 +44,7 @@ module.exports = function (app, database, accessToken, upload, fs) {
                 }
 
                 if (users[0].userPassword === request.body.userPassword) {
-                    
+
                     database.all('SELECT * FROM sessions WHERE sessionUserId=?', [users[0].userId])
                         .then((sessions) => {
                             if (sessions[0] === undefined) {
@@ -59,7 +59,7 @@ module.exports = function (app, database, accessToken, upload, fs) {
                                         response.send(JSON.stringify({ token: token, message: 'Logged in', status: 1 }))
                                     })
                             } else {
-                                response.send(JSON.stringify({ message:'Already logged in', status: 3 }))
+                                response.send(JSON.stringify({ message: 'Already logged in', status: 3 }))
                             }
                         })
                 } else {
@@ -73,10 +73,10 @@ module.exports = function (app, database, accessToken, upload, fs) {
         if (request.get('Token')) {
 
             database.run('DELETE FROM sessions WHERE sessionToken=?', [request.get('Token')])
-            .then(() => {
-                response.send(JSON.stringify({ message: 'Logged out', status: 1 }))
-            })
-            
+                .then(() => {
+                    response.send(JSON.stringify({ message: 'Logged out', status: 1 }))
+                })
+
         } else {
             response.send(JSON.stringify({ message: 'You are not logged in', status: 2 }))
         }
@@ -103,6 +103,41 @@ module.exports = function (app, database, accessToken, upload, fs) {
         database.all('SELECT * FROM sessions')
             .then((sessions) => {
                 response.send(sessions)
+            })
+    })
+
+    app.delete('/users', (request, response) => {
+
+        authenticate(request.get('Token'))
+            .then((user) => {
+                if (user !== -1) {
+                    database.all('SELECT * FROM users WHERE userId=?', [user])
+                        .then((users) => {
+
+                            database.run('DELETE FROM users WHERE userId=?', [user])
+                                .then(() => {
+
+                                    if (users[0].pinImage !== undefined && users[0].pinImage !== null) {
+
+                                        const imgUrl = users[0].userImage.replace('http://116.203.125.0:12001/', '')
+
+                                        fs.unlink(imgUrl, () => {
+                                            console.log('file deleted')
+                                        })
+                                    }
+
+                                    database.run('DELETE FROM sessions WHERE sessionToken=?', [request.get('Token')])
+                                        .then(() => {
+                                            response.send(JSON.stringify({ message: 'User deleted', status: 1 }))
+                                        })
+                                }).catch(error => {
+
+                                    response.send(error)
+                                })
+                        })
+                } else {
+                    response.send(JSON.stringify({ message: 'Unauthorized', status: 2 }))
+                }
             })
     })
 }

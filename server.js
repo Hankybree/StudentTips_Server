@@ -29,6 +29,25 @@ app.listen(12001, () => {
 })
 
 var database
+var authenticate = function (token) {
+    return new Promise((resolve, reject) => {
+        if (token) {
+
+            database.all('SELECT * FROM sessions WHERE sessionToken=?', [token])
+                .then((sessions) => {
+                    if (!sessions[0]) {
+                        resolve(-1)
+                    } else {
+                        resolve(sessions[0].sessionUserId)
+                    }
+                })
+
+        } else {
+
+            resolve(-1)
+        }
+    })
+}
 
 sqlite
     .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
@@ -36,6 +55,6 @@ sqlite
 
         database = database_
 
-        pins(app, database, upload, fs)
-        users(app, database, { v4: uuidv4 }, upload, fs)
+        pins(app, database, upload, fs, authenticate)
+        users(app, database, { v4: uuidv4 }, upload, fs, authenticate)
     })

@@ -1,4 +1,4 @@
-module.exports = function (app, database, upload, fs) {
+module.exports = function (app, database, upload, fs, authenticate) {
     app.get('/pins', (request, response) => {
 
         database.all('SELECT * FROM pins;').then(pins => {
@@ -145,25 +145,4 @@ module.exports = function (app, database, upload, fs) {
                     })
             })
     })
-
-    function authenticate(token) {
-
-        return new Promise((resolve, reject) => {
-            if (token) {
-
-                database.all('SELECT * FROM sessions WHERE sessionToken=?', [token])
-                    .then((sessions) => {
-                        if (!sessions[0]) {
-                            resolve(-1)
-                        } else {
-                            resolve(sessions[0].sessionUserId)
-                        }
-                    })
-
-            } else {
-
-                resolve(-1)
-            }
-        })
-    }
-}  
+}
