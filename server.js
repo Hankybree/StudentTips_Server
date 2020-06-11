@@ -3,15 +3,32 @@ const { v4: uuidv4 } = require('uuid')
 const cors = require('cors')
 const sqlite = require('sqlite')
 const sqlite3 = require('sqlite3')
-//const bodyParser = require('body-parser');
+
 const nodemailer = require('nodemailer');
 require('dotenv').config()
 const mail = process.env['MAIL_USER'];
 const pass = process.env['MAIL_PASS']
+
+const multer = require('multer')
+const upload = multer({
+    dest: 'uploads/',
+    fileFilter: function (req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+            return cb(new Error('Only image files are allowed!'));
+        }
+        cb(null, true);
+    }
+})
+const fs = require('fs')
+
 const app = express()
+
+const pins = require('./pins.js')
+const users = require('./users.js')
 
 app.use(express.json())
 app.use(cors())
+app.use('/uploads', express.static('uploads'))
 
 
 
@@ -19,130 +36,59 @@ app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
-let database
+var database
 
-sqlite
-    .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
-    .then((database_) => {
-        database = database_
-    })
+const authenticate = function (token) {
+    return new Promise((resolve, reject) => {
+        if (token) {
 
-app.get('/pins', (request, response) => {
+            database.all('SELECT * FROM sessions WHERE sessionToken=?', [token])
+                .then((sessions) => {
+                    if (!sessions[0]) {
+                        resolve(-1)
+                    } else {
+                        resolve(sessions[0].sessionUserId)
+                    }
+                })
 
-    database.all('SELECT * FROM pins;').then(pins => {
+        } else {
 
-        let pinArray = []
-
-        for(let i = 0; i < pins.length; i++) {
-            
-            let pinObject = {
-                pinId: pins[i].pinId,
-                pinTitle: pins[i].pinTitle,
-                pinDescription: pins[i].pinDescription,
-                pinImage: pins[i].pinImage,
-                pinTags: JSON.parse(pins[i].pinTags),
-                pinCoordinates: JSON.parse(pins[i].pinCoordinates),
-                pinUser: pins[i].pinUser
-            }
-
-            pinArray.push(pinObject)
+            resolve(-1)
         }
-        
-        response.send(pinArray)
     })
-})
-
-app.get('/pins/:pin', (request, response) => {
-
-    database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
-        .then((pins) => {
-            
-            pins[0].pinTags = JSON.parse(pins[0].pinTags)
-            pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
-
-            response.send(pins[0])
-        })
-})
-
-app.post('/pins', (request, response) => {
-
-    database
-        .run('INSERT INTO pins (pinTitle, pinDescription, pinImage, pinTags, pinCoordinates, pinUser) VALUES (?, ?, ?, ?, ?, ?)', 
-        [
-            request.body.pinTitle,
-            request.body.pinDescription,
-            request.body.pinImage,
-            JSON.stringify(request.body.pinTags),
-            JSON.stringify(request.body.pinCoordinates),
-            request.body.pinUser
-        ])
-        .then(() => {
-
-            response.status(201).send('Pin created')
-        })
-        .catch(error => {
-
-            response.send(error)
-        })
-})
-
-app.patch('/pins/:pin', (request, response) => {
-
-    database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
-            .then((pins) => {
-
-                pins[0].pinTags = JSON.parse(pins[0].pinTags)
-                pins[0].pinCoordinates = JSON.parse(pins[0].pinCoordinates)
-
-                let updatedPin = Object.assign(pins[0], request.body)
-
-                database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
-                    [
-                        updatedPin.pinTitle, 
-                        updatedPin.pinDescription,
-                        updatedPin.pinImage,
-                        JSON.stringify(updatedPin.pinTags),
-                        JSON.stringify(updatedPin.pinCoordinates),
-                        updatedPin.pinId
-                    ])
-                    .then(() => {
-                        
-                        response.send('Pin updated')
-                    })
-            })
-})
-
-app.delete('/pins/:pin', (request, response) => {
-
-    database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
-        .then(() => {
-
-            response.send('Pin deleted')
-        })
-})
-
-app.post('/send-mail/:mailto', (request, response) => {
-    
-    var transporter = nodemailer.createTransport({
-        service: 'gmail',
+}
+const sendConfirmation = function(mailAddress) {
+    const transporter = nodemailer.createTransport({
+        //service: 'gmail'
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
             user: mail,
             pass: pass
         }
-    });
-    var mailOptions = {
+    })
+    const mailOptions = {
         from: mail,
-        to: [request.params.mailto],
-        subject: 'Sending Email using Node.js',
-        text: 'Wellcom to Tiptop!'
-    };
+        to: [mailAddress],
+        subject: 'Welcome to TipTop!',
+        text: 'Hello! This is a confirmation e-mail :)'
+    }
 
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             response.send(error);
         } else {
-            response.send('Email sent: ' + info.response);
+            response.send('Email sent: ' + info.response)
         }
-    });
+    })
+}
 
-})
+sqlite
+    .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
+    .then((database_) => {
+
+        database = database_
+        pins(app, database, upload, fs, authenticate)
+        users(app, database, { v4: uuidv4 }, upload, fs, authenticate, sendConfirmation)
+    })
