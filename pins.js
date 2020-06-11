@@ -55,7 +55,7 @@ module.exports = function (app, database, upload, fs) {
                                 pinImagePath,
                                 request.body.pinTags,
                                 request.body.pinCoordinates,
-                                request.body.pinUser
+                                user
                             ])
                         .then(() => {
 

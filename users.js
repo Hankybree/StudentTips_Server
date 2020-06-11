@@ -25,10 +25,10 @@ module.exports = function (app, database, accessToken, upload, fs) {
                             request.body.userEmail
                         ]).then(() => {
 
-                            response.status(201).send('Created')
+                            response.status(201).send(JSON.stringify({ message: 'Created', status: 1 }))
                         })
                 } else {
-                    response.send('Username is already in use')
+                    response.send(JSON.stringify({ message: 'Username is already in use', status: 2 }))
                 }
             })
     })
@@ -39,7 +39,7 @@ module.exports = function (app, database, accessToken, upload, fs) {
             .then((users) => {
 
                 if (users[0] === undefined) {
-                    response.send('Incorrect username or password')
+                    response.send(JSON.stringify({ message: 'Incorrect username or password', status: 2 }))
                     return
                 }
 
@@ -56,14 +56,14 @@ module.exports = function (app, database, accessToken, upload, fs) {
                                         users[0].userId,
                                         token
                                     ]).then(() => {
-                                        response.send(token)
+                                        response.send(JSON.stringify({ token: token, message: 'Logged in', status: 1 }))
                                     })
                             } else {
-                                response.send('Already logged in')
+                                response.send(JSON.stringify({ message:'Already logged in', status: 3 }))
                             }
                         })
                 } else {
-                    response.send('Incorrect username or password')
+                    response.send(JSON.stringify({ message: 'Incorrect username or password', status: 2 }))
                 }
             })
     })
@@ -74,11 +74,11 @@ module.exports = function (app, database, accessToken, upload, fs) {
 
             database.run('DELETE FROM sessions WHERE sessionToken=?', [request.get('Token')])
             .then(() => {
-                response.send('Logged out')
+                response.send(JSON.stringify({ message: 'Logged out', status: 1 }))
             })
             
         } else {
-            response.send('You are not logged in')
+            response.send(JSON.stringify({ message: 'You are not logged in', status: 2 }))
         }
     })
 
