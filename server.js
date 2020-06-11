@@ -4,8 +4,13 @@ const cors = require('cors')
 const sqlite = require('sqlite')
 const sqlite3 = require('sqlite3')
 
-var multer = require('multer')
-var upload = multer({
+const nodemailer = require('nodemailer');
+require('dotenv').config()
+const mail = process.env['MAIL_USER'];
+const pass = process.env['MAIL_PASS']
+
+const multer = require('multer')
+const upload = multer({
     dest: 'uploads/',
     fileFilter: function (req, file, cb) {
         if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
@@ -14,7 +19,8 @@ var upload = multer({
         cb(null, true);
     }
 })
-var fs = require('fs')
+const fs = require('fs')
+
 const app = express()
 
 const pins = require('./pins.js')
@@ -24,12 +30,15 @@ app.use(express.json())
 app.use(cors())
 app.use('/uploads', express.static('uploads'))
 
+
+
 app.listen(12001, () => {
     console.log('Server running on port 12001')
 })
 
 var database
-var authenticate = function (token) {
+
+const authenticate = function (token) {
     return new Promise((resolve, reject) => {
         if (token) {
 
@@ -48,13 +57,38 @@ var authenticate = function (token) {
         }
     })
 }
+const sendConfirmation = function(mailAddress) {
+    const transporter = nodemailer.createTransport({
+        //service: 'gmail'
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: mail,
+            pass: pass
+        }
+    })
+    const mailOptions = {
+        from: mail,
+        to: [mailAddress],
+        subject: 'Welcome to TipTop!',
+        text: 'Hello! This is a confirmation e-mail :)'
+    }
+
+    transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+            response.send(error);
+        } else {
+            response.send('Email sent: ' + info.response)
+        }
+    })
+}
 
 sqlite
     .open({ driver: sqlite3.Database, filename: 'database.sqlite' })
     .then((database_) => {
 
         database = database_
-
         pins(app, database, upload, fs, authenticate)
-        users(app, database, { v4: uuidv4 }, upload, fs, authenticate)
+        users(app, database, { v4: uuidv4 }, upload, fs, authenticate, sendConfirmation)
     })

@@ -1,4 +1,4 @@
-module.exports = function (app, database, accessToken, upload, fs, authenticate) {
+module.exports = function (app, database, accessToken, upload, fs, authenticate, sendConfirmation) {
 
     app.post('/signup', upload.single('userImage'), (request, response) => {
 
@@ -24,7 +24,7 @@ module.exports = function (app, database, accessToken, upload, fs, authenticate)
                             '[]',
                             request.body.userEmail
                         ]).then(() => {
-
+                            sendConfirmation(request.body.userEmail)
                             response.status(201).send(JSON.stringify({ message: 'Created', status: 1 }))
                         })
                 } else {
