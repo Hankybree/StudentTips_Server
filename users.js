@@ -50,13 +50,14 @@ module.exports = function (app, database, accessToken, upload, fs, authenticate,
                             if (sessions[0] === undefined) {
 
                                 const token = accessToken.v4()
+                                const userId = users[0].userId
 
                                 database.run('INSERT INTO sessions (sessionUserId, sessionToken) VALUES (?, ?)',
                                     [
-                                        users[0].userId,
+                                        userId,
                                         token
                                     ]).then(() => {
-                                        response.send(JSON.stringify({ token: token, message: 'Logged in', status: 1 }))
+                                        response.send(JSON.stringify({ user: userId, token: token, message: 'Logged in', status: 1 }))
                                     })
                             } else {
                                 response.send(JSON.stringify({ message: 'Already logged in', status: 3 }))

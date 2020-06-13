@@ -73,76 +73,90 @@ module.exports = function (app, database, upload, fs, authenticate) {
 
     app.patch('/pins/:pin', upload.single('pinImage'), (request, response) => {
 
-        database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
-            .then((pins) => {
+        authenticate(request.get('Token'))
+            .then((user) => {
+                if (user !== -1) {
+                    database.all('SELECT * FROM pins WHERE pinId = ?', [request.params.pin])
+                        .then((pins) => {
 
-                if (request.file !== undefined) {
+                            if (request.file !== undefined) {
 
-                    if (pins[0].pinImage !== null) {
-                        const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
+                                if (pins[0].pinImage !== null) {
+                                    const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
 
-                        fs.unlink(imgUrl, () => {
-                            console.log('file deleted')
+                                    fs.unlink(imgUrl, () => {
+                                        console.log('file deleted')
+                                    })
+                                }
+                                const pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
+                                pins[0].pinImage = pinImagePath
+
+                            } else {
+
+                                // request.body.pinImage === 'null' is a string because client can't send null as a value
+                                if (request.body.pinImage === 'null' && pins[0].pinImage !== null) {
+
+                                    const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
+
+                                    fs.unlink(imgUrl, () => {
+                                        console.log('file deleted')
+                                    })
+
+                                    request.body.pinImage = null
+                                }
+                            }
+
+                            let updatedPin = Object.assign(pins[0], request.body)
+
+                            database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
+                                [
+                                    updatedPin.pinTitle,
+                                    updatedPin.pinDescription,
+                                    updatedPin.pinImage,
+                                    updatedPin.pinTags,
+                                    updatedPin.pinCoordinates,
+                                    updatedPin.pinId
+                                ])
+                                .then(() => {
+
+                                    response.send('Pin updated')
+                                })
                         })
-                    }
-                    const pinImagePath = 'http://116.203.125.0:12001/' + request.file.path
-                    pins[0].pinImage = pinImagePath
-
                 } else {
-
-                    // request.body.pinImage === 'null' is a string because client can't send null as a value
-                    if (request.body.pinImage === 'null' && pins[0].pinImage !== null) {
-
-                        const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
-
-                        fs.unlink(imgUrl, () => {
-                            console.log('file deleted')
-                        })
-
-                        request.body.pinImage = null
-                    }
+                    response.send('Unauthorized')
                 }
-
-                let updatedPin = Object.assign(pins[0], request.body)
-
-                database.run('UPDATE pins SET pinTitle = ?, pinDescription = ?, pinImage = ?, pinTags = ?, pinCoordinates = ? WHERE pinId = ?',
-                    [
-                        updatedPin.pinTitle,
-                        updatedPin.pinDescription,
-                        updatedPin.pinImage,
-                        updatedPin.pinTags,
-                        updatedPin.pinCoordinates,
-                        updatedPin.pinId
-                    ])
-                    .then(() => {
-
-                        response.send('Pin updated')
-                    })
             })
     })
 
     app.delete('/pins/:pin', (request, response) => {
 
-        database.all('SELECT * FROM pins WHERE pinId=?', [request.params.pin])
-            .then((pins) => {
+        authenticate(request.get('Token'))
+            .then((user) => {
+                if (user !== -1) {
+                    database.all('SELECT * FROM pins WHERE pinId=?', [request.params.pin])
+                        .then((pins) => {
 
-                database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
-                    .then(() => {
+                            database.run('DELETE FROM pins WHERE pinId=?', [request.params.pin])
+                                .then(() => {
 
-                        if (pins[0].pinImage !== undefined && pins[0].pinImage !== null) {
+                                    if (pins[0].pinImage !== undefined && pins[0].pinImage !== null) {
 
-                            const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
+                                        const imgUrl = pins[0].pinImage.replace('http://116.203.125.0:12001/', '')
 
-                            fs.unlink(imgUrl, () => {
-                                console.log('file deleted')
-                            })
-                        }
+                                        fs.unlink(imgUrl, () => {
+                                            console.log('file deleted')
+                                        })
+                                    }
 
-                        response.send('Pin deleted')
-                    }).catch(error => {
+                                    response.send('Pin deleted')
+                                }).catch(error => {
 
-                        response.send(error)
-                    })
+                                    response.send(error)
+                                })
+                        })
+                } else {
+                    response.send('Unauthorized')
+                }
             })
     })
 }
