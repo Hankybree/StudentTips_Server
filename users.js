@@ -83,6 +83,13 @@ module.exports = function (app, database, accessToken, upload, fs, authenticate,
         }
     })
 
+    app.get('/session', (request, response) => {
+        database.all('SELECT * FROM sessions WHERE sessionToken=?', [request.get('Token')])
+            .then((sessions) => {
+                response.send(sessions[0])
+            })
+    })
+
     // Only for testing
 
     app.get('/users', (request, response) => {
@@ -98,6 +105,20 @@ module.exports = function (app, database, accessToken, upload, fs, authenticate,
 
                 response.send(users)
             })
+    })
+
+    app.get('/users/:user', (request, response) => {
+
+        database.all('SELECT * FROM users WHERE userId=?', [request.params.user])
+            .then((users) => {
+                let user = {}
+
+                user.userName = users[0].userName
+                user.userImage = users[0].userImage
+
+                response.send(user)
+            })
+
     })
 
     app.get('/sessions', (request, response) => {
